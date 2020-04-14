@@ -1,0 +1,145 @@
+babel.config.js
+
+module.exports = {
+  presets: [
+    '@babel/preset-env',
+    '@babel/preset-react'
+  ],
+  plugins: [
+    '@babel/plugin-transform-runtime'
+  ]
+};
+
+-----------------------------------
+webpack.config.js
+
+const path = require('path');
+
+module.exports = {
+
+  entry: path.resolve(__dirname, 'src', 'index.js'),
+  output: {
+    path: path.resolve(__dirname, 'public'),
+    filename: 'bundle.js'
+
+  },
+  devServer: {
+    contentBase: path.resolve(__dirname, 'public'),
+  },
+  //todas as vezes que encontrar um arquivo javascript, que não esteja dentro 
+  //da pasta node_modules, converte ele para mim
+  module: {
+    rules: [
+      {
+        test: /\.js$/, //transpilar todo arquivo que termine com .js
+        exclude: /node_modules/, //não transpilar arquivos da node_modules
+        use: {
+          loader: 'babel-loader', //use o babel-loader para transpilar
+        }
+      },
+
+      {
+        test: /\.css$/,
+        exclude: /node_modules/,
+        use: [
+          { loader: 'style-loader' }, //pegar o css interpretado pelo css-loader e vai injetar dentro do html
+          { loader: 'css-loader' }, //ler e interpreta arquivos css e importações de imagens...
+        ]
+      },
+
+      {
+        test: /.*\.(gif|png|jpe?g)$/i,
+        use: [
+          { loader: 'file-loader' }, //pegar arquivo
+        ]
+      }
+
+    ]
+  },
+};
+
+--------------------------------------------------------
+App.js
+
+import React, { useState, useEffect } from 'react';
+import api from './services/api';
+
+import './App.css'
+//import bacckgroundImage from './assets/foto.jpg'
+import Header from './components/Header';
+
+/**
+ * principais conceito do react
+ * 
+ * Componente
+ * Propriedade
+ * Estado & Imutabilidade
+ */
+
+
+
+function App() {
+
+  //const projects = ['Desenvolvimento de app', 'Front-end web'];
+
+  //desestruturar
+  const [projects, setProjects] = useState([]);
+
+  useEffect(() => {
+    api.get('projects').then(response => {
+      setProjects(response.data);
+    });
+  }, []);
+
+  /**
+   * useState retorna um array com 2 posições
+   * 
+   * 1ª posição: varipavel com o seu valor incial
+   * 
+   * 2ª posição: função para atualizarmos esse valor
+   */
+
+  async function handleAddProject() {
+    //projects.push(`Novo projeto ${Date.now()}`); //o push não respeita o conceito de imutabilidade
+
+    //setProjects([...projects, `Novo projeto ${Date.now()}`]);
+
+    //adicionar projetos vindo do front-end
+
+    const response = await api.post('projects', {
+      title: `Novo projeto ${Date.now()}`,
+      owner: "Jusciê Delfino"
+    });
+
+    const project = response.data;
+
+    setProjects([...projects, project]);
+
+  }
+
+
+  return (
+    <>
+      <Header title="Projects" />
+
+      <ul>
+        { projects.map(project => <li key={ project.id }>{ project.title }</li>) }
+      </ul>
+
+      <button type="button" onClick={ handleAddProject }>Adicionar projeto</button>
+    </>
+  );
+}
+
+export default App;
+
+----------------------
+src/services/api.js
+
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:3333'
+});
+
+export default api;
